@@ -1,0 +1,59 @@
+allocate.address 8
+chain.gaslimit 128
+
+chain.deploy @0 IERC721.prd NonfungiblesToken.prd
+
+log.highlight address0 mint nft
+// address0 mint single nft
+NonfungiblesToken.mint @0 {name: "singlenft", nft_hash: "d0f4dq7ww0231hftj5vw4a3jcfv7mwj4658en9ppfradp3y14jx0", signer: "$@1$", timestamp: 1680775250, flags:0}
+// address0 mint series nft
+NonfungiblesToken.mint @0 {name: "seriesnft", nft_hash: "d0f4dq7ww0231hftj5vw4a3jcfv7mwj4658en9ppfradp3y14jx0", signer: "$@1$", timestamp: 1680775250, series:[{name: "peice1", nft_hash: "d0f4dq7ww0231hftj5vw4a3jcfv7mwj4658en9ppfradp3y14jx0"}, {name: "peice2", nft_hash: "d0f4dq7ww0231hftj5vw4a3jcfv7mwj4658en9ppfradp3y14jx0"}, {name: "peice3", nft_hash: "d0f4dq7ww0231hftj5vw4a3jcfv7mwj4658en9ppfradp3y14jx0"}], flags:0}
+// address0 mint combination nft
+NonfungiblesToken.mint @0 {name: "compnft", nft_hash: "d0f4dq7ww0231hftj5vw4a3jcfv7mwj4658en9ppfradp3y14jx0", signer: "$@1$", timestamp: 1680775250, count:100, flags:0}
+
+chain.run
+viz.addr @all
+
+log.highlight address0 transfer nft1 to address4
+// address0 transfer nft1 to address4
+NonfungiblesToken.transfer @0 {to: "$@4$", nft_addr: "pmbf01wag1kgxbyewn6pasq35yqqryvd9azp041jx8cg6paqnae8h17yyw", nft_id: 1}
+chain.run
+viz.addr @all
+
+log.highlight address1 transfer nft2 from address0 to address4
+// address1 transfer nft2 from address0 to address4
+NonfungiblesToken.transferFrom @1 {from: "$@0$", to: "$@4$", nft_addr: "0yb4hjk4nhecdq3tj01vkfdwhm099wzwebfyy92mbrscr2th2vjxhrhw4c", nft_id: 2}
+chain.run
+viz.addr @all
+
+log.highlight address0 set approval for address1
+// address0 set approval for address1
+NonfungiblesToken.setApprovalForAll @0 {operator: "$@1$", approved: true}
+chain.run
+viz.addr @all
+
+log.highlight address1 retry transfer nft2 to address4
+// address1 retry transfer nft2 from address0 to address4
+NonfungiblesToken.transferFrom @1 {from: "$@0$", to: "$@4$", nft_addr: "0yb4hjk4nhecdq3tj01vkfdwhm099wzwebfyy92mbrscr2th2vjxhrhw4c", nft_id: 2}
+chain.run
+viz.addr @all
+
+log.highlight address2 transfer nft3 to address5
+NonfungiblesToken.transfer @0 {to: "$@0$", nft_addr: "bds31wm3ysgsyk5s7mkkxkrkap9xrsktq0erhqfjrqgt5f43cdfbgwnpzc", nft_id: 3}
+chain.run
+// address2 transfer nft3 from address0 to address5
+NonfungiblesToken.transferFrom @2 {from: "$@0$", to: "$@5$", nft_addr: "bds31wm3ysgsyk5s7mkkxkrkap9xrsktq0erhqfjrqgt5f43cdfbgwnpzc", nft_id: 3}
+chain.run
+viz.addr @all
+
+log.highlight address0 set nft3 approved for address2
+// address0 set nft3 approved for address2
+NonfungiblesToken.approve @0 {nft_addr: "bds31wm3ysgsyk5s7mkkxkrkap9xrsktq0erhqfjrqgt5f43cdfbgwnpzc", nft_id: 3, to: "$@2$"}
+chain.run
+viz.addr @all
+
+log.highlight address2 retry transfer nft3 to address5
+// address2 retry transfer nft3 from address0 to address5
+NonfungiblesToken.transferFrom @2 {from: "$@0$", to: "$@5$", nft_addr: "bds31wm3ysgsyk5s7mkkxkrkap9xrsktq0erhqfjrqgt5f43cdfbgwnpzc", nft_id: 3}
+chain.run
+viz.addr @all

@@ -1,0 +1,13 @@
+contract IERC721 {
+    interface ERC721Interface {
+        @address function uint32 balanceOf(address nft_address);
+        @address function address ownerOf(uint32 nft_id);
+        // @address function safeTransferFrom(address _from, address _to, uint256 _tokenId, bytes data);
+        // @address function safeTransferFrom(address _from, address _to, uint256 _tokenId);
+        @address function transferFrom(address from, address to, address nft_addr, uint32 nft_id);
+        @address function approve(address nft_addr, uint32 nft_id, address to);
+        @address function setApprovalForAll(address operator, bool approved);
+        @address function address getApproved(uint32 nft_id);
+        @address function bool isApprovedForAll(address operator);
+    }
+}
