@@ -1,0 +1,142 @@
+supply PPC using MyPPC;
+
+contract CryptoPuppyDna {
+    function uint64 generateRandomDna(uint64 _Rand) public {
+        return uint64(_Rand / uint64(100000000));
+    }
+}
+
+import my_dapp.CryptoPuppyDna as DNA;
+
+contract CryptoPuppy {
+    shard  uint64 pid;
+    struct Puppy{
+        uint64 id;
+        uint64 dna;
+        uint32 age;
+        uint64 birthHeight;
+        uint64 multiplyHeight;
+        string name;
+        bool forSale;
+        bigint salePrice;
+    }
+    array<Puppy> userPuppys;
+    map<uint64,uint32> puppyPosition;
+    token ppcToken;
+
+    function _createPuppy(string name){
+        uint64 _height = __block.get_height();
+        bool _isCreat = false;
+        DNA randDna =DNA.__self();
+        uint64 _dna = randDna.generateRandomDna(__block.get_random_number());
+        for (uint32 i = 0u32; i < userPuppys.length(); i++){
+            if(userPuppys[i].birthHeight == _height){
+                _isCreat = true;
+                break;
+            }
+        }
+        __debug.assert(!_isCreat);
+        uint64 _pid = _randPid();
+        userPuppys.push(Puppy(_pid, _dna, 0u32, _height,0u64, name, false, 0ib));
+        puppyPosition[_pid] = userPuppys.length() - 1u32;
+    }
+
+    function createRandomPuppy(string puppyName) export{
+        _createPuppy(puppyName);
+    }
+
+    shard function on_deploy() const{
+        issue@miner (){
+             pid = 1u64;
+        }
+    }
+
+    function renamePuppy( uint64 id, string newName) export{
+        __debug.assert(__transaction.verify_signer(__transaction.get_self_address()));
+        __debug.assert(puppyPosition.has(id));
+
+        userPuppys[puppyPosition[id]].name = newName;
+    }
+
+    function on_block() const {
+        issue@__transaction.get_self_address() (){
+            uint64 _height = __block.get_height();
+            for (uint32 j = 0u32; j < userPuppys.length(); j++){
+                userPuppys[j].age = userPuppys[j].age + 1u32;
+            }
+        }
+    }
+
+    function multiply(uint64 id0, uint64 id1, string babyName) export{
+        uint64 _height = __block.get_height();
+        __debug.assert(__transaction.verify_signer(__transaction.get_self_address()));
+        __debug.assert(puppyPosition.has(id0));
+        __debug.assert(puppyPosition.has(id1));
+
+        __debug.assert(userPuppys[puppyPosition[id0]].age > 2u32);
+        __debug.assert(_height - userPuppys[puppyPosition[id0]].multiplyHeight > 3u64);
+        __debug.assert(userPuppys[puppyPosition[id1]].age > 2u32);
+        __debug.assert(_height - userPuppys[puppyPosition[id1]].multiplyHeight > 3u64);
+
+        _createPuppy(babyName);
+        userPuppys[puppyPosition[id0]].multiplyHeight = _height;
+        userPuppys[puppyPosition[id1]].multiplyHeight = _height;
+    }
+
+    function uint64 _randPid(){
+        pid++;
+        uint64 _shard = uint64(__block.get_shard_index());
+        uint64 _count=0u64;
+        uint64 _shard1 = _shard;
+        for (uint64 i = 0u64; i <= _shard/10u64; i++){
+            _shard = _shard/10u64;
+            pid = pid*10u64;
+        }
+        return  pid + _shard1;
+    }
+
+    function register() export {
+        __debug.assert(ppcToken.get_id() == 0u32);
+        ppcToken = MyPPC.mint(bigint(100));
+    }
+
+    function forSale(uint64 id, bigint salePrice) export{
+        __debug.assert(__transaction.verify_signer(__transaction.get_self_address()));
+        __debug.assert(puppyPosition.has(id));
+        __debug.assert(!userPuppys[puppyPosition[id]].forSale);
+        __debug.assert(ppcToken.get_id() > 0u32);
+
+        userPuppys[puppyPosition[id]].forSale = true;
+        userPuppys[puppyPosition[id]].salePrice = salePrice;
+    }
+
+    function purchase(address owner,uint64 id, bigint purchasePrice) export{
+        __debug.assert(__transaction.verify_signer(__transaction.get_self_address()));
+        __debug.assert(ppcToken.get_id() > 0u32);
+        __debug.assert(ppcToken.get_amount() >= purchasePrice);
+
+        token _purchaseToken = ppcToken;
+        relay@owner (^_purchaseToken,^id,^purchasePrice){
+            __debug.assert(puppyPosition.has(id));
+            __debug.assert(userPuppys[puppyPosition[id]].forSale);
+            __debug.assert(userPuppys[puppyPosition[id]].salePrice <= purchasePrice);
+            __debug.assert(ppcToken.get_id() > 0u32);
+            if(userPuppys[puppyPosition[id]].salePrice == purchasePrice){                
+                __debug.assert(_purchaseToken.transfer(ppcToken, purchasePrice));
+            }
+            if(userPuppys[puppyPosition[id]].salePrice < purchasePrice){
+                __debug.assert(_purchaseToken.transfer(ppcToken, userPuppys[puppyPosition[id]].salePrice ));
+            }
+            Puppy _purchasePuppy;
+            _purchasePuppy = userPuppys[puppyPosition[id]];
+            _purchasePuppy.forSale = false;
+            _purchasePuppy.salePrice = 0ib;
+
+            puppyPosition.erase(id);
+            relay@__transaction.get_originated_address() (^_purchasePuppy){
+                userPuppys.push(_purchasePuppy);
+                puppyPosition[_purchasePuppy.id] = userPuppys.length() - 1u32;
+            }
+        }
+    }
+}

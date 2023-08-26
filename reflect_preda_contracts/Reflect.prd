@@ -1,0 +1,238 @@
+// todo implements nft
+import reflect_preda_contracts.NonfungiblesToken as NFT;
+// todo import token
+
+contract Reflect implements TLD,SLD {
+
+    interface TLD {
+        @address function launch(string tld_str, uint32[] conditions, uint32[] prices, address receiver, bool permanent);
+    } 
+
+    interface SLD {
+        // permanent == true => num > 0 
+        // permanent == false => ignore num
+        @address function mint(string tld_str, string sld_str, uint32 num);
+        
+        @address function renew(string domain_str, uint32 num);
+    }
+
+    @address address _platformFee;
+    @address uint32 _feePercent;
+    @address uint32 _tldLength;
+
+    struct Tld {
+        address owner;
+        address receivingAddress;
+        bool permanent;
+        // address[] supportedPayment;
+    }
+
+    @address map<string, address> _tlds;
+    @address map<address, array<Tld>> _tldsOwnedByAddr;
+
+    struct Price {
+        uint32 condition;
+        uint32 price;
+    }
+
+    @address map<string, array<Price>> _tldPrices;
+
+    @address bool _whitelistEnable;
+    @address map<address, bool> _whitelist;
+
+    struct Domain {
+        address owner;
+        string tld_str;
+        string sld_str;
+        string domain_str;
+    }
+
+    // domain_str(sld_str + "." + tld_str) => owner
+    @address map<string, address> _domains;
+    // owner => all domains
+    @address map<address, array<Domain>> _domainOwnedByAddr;
+
+    @address function init(address platform_fee, uint32 fee_percent, uint32 tld_length) export {
+        // todo check null address
+        __debug.assert(platform_fee != address0);
+        __debug.assert(fee_percent >= 0u && fee_percent <= 100u);
+        __debug.assert(tld_length > 0u);
+        _platformFee = platform_fee;
+        _feePercent = fee_percent;
+        _tldLength = tld_length;
+
+		__debug.print("init success");
+    }
+
+
+
+
+    // -------------------------------------Query Functions---------------------------------------
+    @address function address getAddrByTLDStr(string tld_str) public {
+        address a;
+        if (_tlds.has(tld_str)) {
+            a = _tlds[tld_str];
+        } 
+        return a;
+    }
+
+    @address function array<Tld> getTLDListByAddr(address addr) public {
+        array<Tld> tlds;
+        if (_tldsOwnedByAddr.has(addr)) {
+            tlds = _tldsOwnedByAddr[addr]; 
+        }
+        return tlds;
+    }
+
+    @address function address getAddrByDomainStr(string domain_str) public {
+        address a;
+        if (_domains.has(domain_str)) {
+            a = _domains[domain_str];
+        }
+        return a;
+    }
+
+    @address function array<Domain> getDomainListByAddr(address addr) public {
+        array<Domain> domains;
+        if (_domainOwnedByAddr.has(addr)) {
+            domains = _domainOwnedByAddr[addr]; 
+        }
+        return domains;
+    }
+
+    @address function uint32 getDomainPrice(uint32 domainLength, string tld_str) public {    
+
+    }
+
+    @address function uint64 getExpirationTime(string domain_str) public {
+
+    }
+
+
+
+
+
+
+
+    // --------------------------------Update Contract State Functions------------------------------------
+
+    @address function launch(string tld_str, uint32[] conditions, uint32[] prices, address receiver, bool permanent) export {
+        address sender;
+        sender = __transaction.get_self_address;
+        // check, tld max length <= 5
+        __debug.assert(tld_str.length <= 5u);
+        // check, tld not been launched
+        __debug.assert(!_tlds.has(tld_str));
+        // check whitelist
+        if (_whitelistEnable) {
+            __debug.assert(_whitelist.has(sender));
+        }
+        // check,conditions.length == prices.length
+        __debug.assert(conditions.length == prices.length);
+
+
+        // add record about tld
+        _tlds[tld_str] = sender;
+
+        // add tld details
+        // 1. content
+        Tld tld;
+        tld.owner = sender;
+        tld.receivingAddress = receiver;
+        if (permanent) {
+            tld.permanent = permanent;        
+        }
+        array<Tld> tlds;
+        if (_tldsOwnedByAddr[sender].length > 0u) {
+            _tldsOwnedByAddr[sender].append(tld);
+        } else {
+            tlds.append(tld);
+            _tldsOwnedByAddr[sender] = tlds;
+        }
+
+        // 2. price
+        array<Price> priceList;
+        for (uint32 index = 0u; index < conditions.length(); index++)
+        {
+            Price price;
+            price.condition = conditions[index];
+            price.price = prices[index];
+            priceList.push(price);            
+        }
+        _tldPrices[tld_str] = priceList;
+    }
+
+    @address function mint(string tld_str, string sld_str, uint32 num) export {
+        address sender;
+        sender = __transaction.get_self_address;
+        // check, tld_str exist
+        __debug.assert(_tlds.has(tld_str));
+        // check, sld_str has not been registered
+        // todo check how to define null address 
+        __debug.assert(getAddrByDomainStr(domainStrSplicing(tld_str, sld_str)) == address0);
+        // check, permanent == true ? num > 0 : ignore num
+        if (permanent) {
+            __debug.assert(num > 0u32);
+        }
+        // check, addr balance >= mint price
+        // todo
+        // token transfer
+        // todo
+        // add domain record
+        _domains[domainStrSplicing(tld_str, sld)] = sender;
+
+        Domain domain;
+        domain.tld_str = tld_str;
+        domain.sld_str = sld_str;
+        domain.domain_str = domainStrSplicing(tld_str,sld_str);
+        _domainOwnedByAddr[sender].push(domain);
+
+        // new add tokenID, ID ++
+
+
+    }
+
+    @address function renew(string domain_str, uint32 num) export {
+
+    }
+
+    @address function bool updateWhitelistEnable(bool update) export {
+        _whitelistEnable = update;        
+        return true;
+    }
+
+    @address function bool addWhiteList(array<address> addrs) export {
+
+    }
+    
+    @address function bool removeWhiteList(array<address> addrs) export {
+
+    }
+
+    @address function bool delWhiteList() export {    
+
+    }
+
+    @address function bool updateTLDReceiver(address addr) export {    
+
+    }
+
+
+
+
+
+    // -------------------------------------Library Functions ------------------------------------
+
+    @global function string domainStrSplicing(string tld_str, string sld_str) private {
+        __debug.assert(tld_str.length > 0u && sld_str.length > 0u);
+        string str;
+        string middleStr = ".";
+        str = sld_str.append(middleStr);
+        str = str.append(tld_str);
+        return str;
+    }
+
+
+    
+
+}
