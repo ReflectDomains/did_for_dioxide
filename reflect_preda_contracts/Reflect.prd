@@ -1,6 +1,6 @@
-// todo implements nft
+import NonfungiblesToken;
 import reflect_preda_contracts.NonfungiblesToken as NFT;
-// todo import token
+// todo import token [token standard is not yet implemented]
 
 contract Reflect implements TLD,SLD {
 
@@ -19,6 +19,9 @@ contract Reflect implements TLD,SLD {
     @address address _platformFee;
     @address uint32 _feePercent;
     @address uint32 _tldLength;
+
+    @address IERC721.ERC721Interface _erc721Interface;
+    @address NFT _nft;
 
     struct Tld {
         address owner;
@@ -60,6 +63,10 @@ contract Reflect implements TLD,SLD {
         _platformFee = platform_fee;
         _feePercent = fee_percent;
         _tldLength = tld_length;
+        // interface to instantiate
+        _erc721Interface = IERC721.ERC721Interface(NonfungiblesToken.__id());
+        NFT _nft = NFT.__self();
+        
 
 		__debug.print("init success");
     }
@@ -162,7 +169,7 @@ contract Reflect implements TLD,SLD {
         _tldPrices[tld_str] = priceList;
     }
 
-    @address function mint(string tld_str, string sld_str, uint32 num) export {
+    @address function mint(string tld_str, string sld_str, uint32 num, ng name, hash nft_hash, address signer, uint64 timestamp, uint32 flags) export {
         address sender;
         sender = __transaction.get_self_address;
         // check, tld_str exist
@@ -176,7 +183,7 @@ contract Reflect implements TLD,SLD {
         }
         // check, addr balance >= mint price
         // todo
-        // token transfer
+        // [token standard is not yet implemented] token transfer
         // todo
         // add domain record
         _domains[domainStrSplicing(tld_str, sld)] = sender;
@@ -187,7 +194,8 @@ contract Reflect implements TLD,SLD {
         domain.domain_str = domainStrSplicing(tld_str,sld_str);
         _domainOwnedByAddr[sender].push(domain);
 
-        // new add tokenID, ID ++
+        // new add nft
+        _nft.mint(name, nft_hash, signer, timestamp, flags);
 
 
     }
